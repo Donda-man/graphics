@@ -4,6 +4,9 @@
 #include <d3d9.h>
 #include <d3dx9.h>
 #include <iostream>
+#include <random>
+#include <ctime>
+#include <functional>
 
 
 // define the screen resolution and keyboard macros
@@ -519,9 +522,12 @@ void init_game(void)
 	//적들 초기화 
 	for (int i = 0; i<ENEMY_NUM; i++)
 	{
+		mt19937 engine((unsigned int)time(NULL));				// MT19937 난수 엔진
+		uniform_int_distribution<int> distribution(120, 360);     // 생성 범위
+		auto generator = bind(distribution, engine);
 
 		//enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
-		enemy[i].init((float)(rand() % 640), rand() % 300);
+		enemy[i].init((float)(rand() % 640), generator());
 	}
 
 	//총알 초기화 
@@ -553,9 +559,15 @@ void do_game_logic(void)
 	for (int i = 0; i<ENEMY_NUM; i++)
 	{
 		//if (enemy[i].y_pos > 500)
-		if(enemy[i].x_pos < 640)
+		if (enemy[i].x_pos < 640)
+		{
+			mt19937 engine((unsigned int)time(NULL));				// MT19937 난수 엔진
+			uniform_int_distribution<int> distribution(120, 360);     // 생성 범위
+			auto generator = bind(distribution, engine);
+
 			//enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
-			enemy[i].init((float)(rand() % 640), rand() % 300);
+			enemy[i].init((float)(rand() % 640), generator());
+		}
 		else
 			enemy[i].move();
 	}
