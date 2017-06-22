@@ -51,9 +51,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 using namespace std;
 
-
 enum { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT };
-
 
 //기본 클래스 
 class entity {
@@ -66,7 +64,6 @@ public:
 
 };
 
-
 bool sphere_collision_check(float x0, float y0, float size0, float x1, float y1, float size1)
 {
 
@@ -74,21 +71,16 @@ bool sphere_collision_check(float x0, float y0, float size0, float x1, float y1,
 		return true;
 	else
 		return false;
-
 }
 
-
-
 //주인공 클래스 
-class Hero :public entity {
-
+class Hero :public entity
+{
 public:
-	void fire();
-	void super_fire();
 	void move(int i);
 	void init(float x, float y);
 
-
+	int state_bullet = 0;
 };
 
 void Hero::init(float x, float y)
@@ -96,7 +88,7 @@ void Hero::init(float x, float y)
 
 	x_pos = x;
 	y_pos = y;
-
+	state_bullet = 0;
 }
 
 void Hero::move(int i)
@@ -111,25 +103,22 @@ void Hero::move(int i)
 		y_pos += 6;
 		break;
 
-
 	case MOVE_LEFT:
 		x_pos -= 6;
 		break;
 
-
 	case MOVE_RIGHT:
 		x_pos += 6;
 		break;
-
 	}
-
 }
+
+Hero hero;
 
 // 적 클래스 
 class Enemy :public entity {
 
 public:
-	void fire();
 	void init(float x, float y);
 	void move();
 };
@@ -159,6 +148,8 @@ public:
 	void hide();
 	void active();
 	bool check_collision(float x, float y);
+
+
 };
 
 bool Bullet::check_collision(float x, float y)
@@ -179,6 +170,7 @@ void Bullet::init(float x, float y)
 {
 	x_pos = x;
 	y_pos = y;
+
 }
 
 bool Bullet::show()
@@ -193,8 +185,18 @@ void Bullet::active()
 
 void Bullet::move()
 {
-	//y_pos -= 16;
-	x_pos += 16;
+	switch (hero.state_bullet)
+	{
+	case 0:
+		x_pos += 8;
+		break;
+	case 1:
+		x_pos += 16;
+		break;
+	case 2:
+		x_pos += 4;
+		break;
+	}
 }
 
 void Bullet::hide()
@@ -202,125 +204,10 @@ void Bullet::hide()
 	bShow = false;
 }
 
-/////////////
-
-class Bullet_blue :public entity {
-
-public:
-	bool bShow;
-
-	void init(float x, float y);
-	void move();
-	bool show();
-	void hide();
-	void active();
-	bool check_collision(float x, float y);
-};
-
-bool Bullet_blue::check_collision(float x, float y)
-{
-
-	//충돌 처리 시 
-	if (sphere_collision_check(x_pos, y_pos, 32, x, y, 32) == true)
-	{
-		bShow = false;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void Bullet_blue::init(float x, float y)
-{
-	x_pos = x;
-	y_pos = y;
-}
-
-bool Bullet_blue::show()
-{
-	return bShow;
-}
-
-void Bullet_blue::active()
-{
-	bShow = true;
-}
-
-void Bullet_blue::move()
-{	
-}
-
-void Bullet_blue::hide()
-{
-	bShow = false;
-}
-
-///////////////
-
-class Bullet_yellow :public entity {
-
-public:
-	bool bShow;
-
-	void init(float x, float y);
-	void move();
-	bool show();
-	void hide();
-	void active();
-	bool check_collision(float x, float y);
-};
-
-
-bool Bullet_yellow::check_collision(float x, float y)
-{
-	//충돌 처리 시 
-	if (sphere_collision_check(x_pos, y_pos, 32, x, y, 32) == true)
-	{
-		bShow = false;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void Bullet_yellow::init(float x, float y)
-{
-	x_pos = x;
-	y_pos = y;
-}
-
-bool Bullet_yellow::show()
-{
-	return bShow;
-}
-
-
-void Bullet_yellow::active()
-{
-	bShow = true;
-}
-
-
-
-void Bullet_yellow::move()
-{
-}
-
-void Bullet_yellow::hide()
-{
-	bShow = false;
-}
 
 //객체 생성 
-Hero hero;
 Enemy enemy[ENEMY_NUM];
 Bullet bullet[BULLET_NUM];
-Bullet_blue bullet_blue[BULLET_NUM];
-Bullet_yellow bullet_yellow[BULLET_NUM];
 
 // the entry point for any Windows program
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -443,8 +330,7 @@ void initD3D(HWND hWnd)
 		NULL,    // no image info struct
 		NULL,    // not using 256 colors
 		&sprite);    // load to sprite
-
-
+	
 	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
 		L"hero.png",    // the file name
 		D3DX_DEFAULT,    // default width
@@ -474,7 +360,6 @@ void initD3D(HWND hWnd)
 		NULL,    // no image info struct
 		NULL,    // not using 256 colors
 		&sprite_enemy);    // load to sprite
-
 
 	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
 		L"bullet.png",    // the file name
@@ -570,6 +455,16 @@ void do_game_logic(void)
 	if (KEY_DOWN(0x44))
 		hero.move(MOVE_RIGHT);
 
+	if (KEY_DOWN(0x45))
+		hero.state_bullet = 2;
+
+	if (KEY_DOWN(0x46))
+		hero.state_bullet = 0;
+
+	if(KEY_DOWN(0x51))
+		hero.state_bullet = 1;
+
+
 
 	//적들 처리 
 	for (int i = 0; i<ENEMY_NUM; i++)
@@ -624,40 +519,6 @@ void do_game_logic(void)
 				}
 			}
 		}
-		if (KEY_DOWN(0x51))
-		{
-			if (bullet_blue[i].show() == false && Timer3On == false)
-			{
-				if (KEY_DOWN(0x01))
-				{
-					bullet_blue[i].active();
-					bullet_blue[i].init(hero.x_pos + 60, hero.y_pos);
-					Timer3On = true;
-
-					return;
-				}
-			}
-			if (bullet_blue[i].show() == true)
-			{
-				if (bullet_blue[i].x_pos > 640)
-					bullet_blue[i].hide();
-				else
-					bullet_blue[i].move();
-
-				//충돌 처리 
-				for (int i = 0; i < ENEMY_NUM; i++)
-				{
-					for (int j = 0; j < BULLET_NUM; j++)
-					{
-						if (bullet_blue[j].check_collision(enemy[i].x_pos, enemy[i].y_pos) == true)
-						{
-							enemy[i].init((float)(rand() % 640), (float)(rand() % 300 + 50));
-							bullet_blue[j].hide();
-						}
-					}
-				}
-			}
-		}
 	}	
 }
 
@@ -702,48 +563,49 @@ void render_frame(void)
 	d3dspt->SetTransform(&matWorldTemp);
 	d3dspt->Draw(sprite_background, &part5, &center3, &position3, D3DCOLOR_ARGB(255, 255, 255, 255));
 
-											 //주인공 
+	////주인공 
 	RECT part;
 	SetRect(&part, 0, 0, 64, 64);
 	D3DXVECTOR3 center(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
 	D3DXVECTOR3 position(hero.x_pos, hero.y_pos, 0.0f);    // position at 50, 50 with no depth
 	d3dspt->Draw(sprite_hero, &part, &center, &position, D3DCOLOR_ARGB(255, 255, 255, 255));
-
+	
 	////총알 
 	for (int i = 0; i < BULLET_NUM; i++)
 	{
-		if (bullet[i].bShow == true)
+		switch (hero.state_bullet)
 		{
-			RECT part1;
-			SetRect(&part1, 0, 0, 64, 64);
-			D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-			D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
-			d3dspt->Draw(sprite_bullet, &part1, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
-		}
-	}
-
-	for (int i = 0; i < BULLET_NUM; i++)
-	{
-		if (bullet_blue[i].bShow == true)
-		{
-			RECT part3;
-			SetRect(&part3, 0, 0, 64, 64);
-			D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-			D3DXVECTOR3 position1(bullet_blue[i].x_pos, bullet_blue[i].y_pos, 0.0f);    // position at 50, 50 with no depth
-			d3dspt->Draw(sprite_bullet, &part3, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
-		}
-	}
-
-	for (int i = 0; i < BULLET_NUM; i++)
-	{
-		if (bullet_yellow[i].bShow == true)
-		{
-			RECT part4;
-			SetRect(&part4, 0, 0, 64, 64);
-			D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-			D3DXVECTOR3 position1(bullet_yellow[i].x_pos, bullet_yellow[i].y_pos, 0.0f);    // position at 50, 50 with no depth
-			d3dspt->Draw(sprite_bullet, &part4, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
-		}
+		case 0:
+			if (bullet[i].bShow == true)
+			{
+				RECT part1; // 
+				SetRect(&part1, 0, 0, 64, 64);
+				D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+				D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+				d3dspt->Draw(sprite_bullet, &part1, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+			}
+			break;
+		case 1:
+			if (bullet[i].bShow == true)
+			{
+				RECT part3; // 
+				SetRect(&part3, 0, 0, 64, 64);
+				D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+				D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+				d3dspt->Draw(sprite_bullet_blue, &part3, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+			}
+			break;
+		case 2:
+			if (bullet[i].bShow == true)
+			{
+				RECT part4; // 
+				SetRect(&part4, 0, 0, 64, 64);
+				D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+				D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+				d3dspt->Draw(sprite_bullet_yellow, &part4, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+			}
+			break;
+		}		
 	}
 
 	////에네미 
@@ -753,7 +615,6 @@ void render_frame(void)
 
 	for (int i = 0; i<ENEMY_NUM; i++)
 	{
-
 		D3DXVECTOR3 position2(enemy[i].x_pos, enemy[i].y_pos, 0.0f);    // position at 50, 50 with no depth
 		d3dspt->Draw(sprite_enemy, &part2, &center2, &position2, D3DCOLOR_ARGB(255, 255, 255, 255));
 	}
