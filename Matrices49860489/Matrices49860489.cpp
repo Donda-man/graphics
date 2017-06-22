@@ -12,6 +12,7 @@
 #define KEY_UP(vk_code) ((GetAsyncKeyState(vk_code) & 0x8000) ? 0 : 1)
 
 #define ENEMY_NUM 10
+#define ENEMY_COLOR_NUM 3
 #define BULLET_NUM 10
 
 bool Timer3On = false;
@@ -30,11 +31,19 @@ LPD3DXSPRITE d3dspt;    // the pointer to our Direct3D Sprite interface
 						// sprite declarations
 LPDIRECT3DTEXTURE9 sprite;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_hero;    // the pointer to the sprite
+
 LPDIRECT3DTEXTURE9 sprite_enemy;    // the pointer to the sprite
+LPDIRECT3DTEXTURE9 sprite_enemy_blue;    // the pointer to the sprite
+LPDIRECT3DTEXTURE9 sprite_enemy_yellow;    // the pointer to the sprite
+
 LPDIRECT3DTEXTURE9 sprite_bullet;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_bullet_blue;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_bullet_yellow;    // the pointer to the sprite
+
 LPDIRECT3DTEXTURE9 sprite_background;    // the pointer to the sprite
+
+LPDIRECT3DTEXTURE9 sprite_TScore;    // the pointer to the sprite
+LPDIRECT3DTEXTURE9 sprite_OScore;    // the pointer to the sprite
 
 									 // function prototypes
 void initD3D(HWND hWnd);    // sets up and initializes Direct3D
@@ -45,6 +54,11 @@ void init_game(void);
 void do_game_logic(void);
 bool sphere_collision_check(float x0, float y0, float size0, float x1, float y1, float size1);
 
+int t_xPos = 1;
+int o_xPos = 1;
+int Score = 0;
+int T_Score = 0;
+int O_Score = 0;
 
 // the WindowProc function prototype
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -63,15 +77,6 @@ public:
 	int HP;
 
 };
-
-bool sphere_collision_check(float x0, float y0, float size0, float x1, float y1, float size1)
-{
-
-	if ((x0 - x1)*(x0 - x1) + (y0 - y1)*(y0 - y1) < (size0 + size1) * (size0 + size1))
-		return true;
-	else
-		return false;
-}
 
 //주인공 클래스 
 class Hero :public entity
@@ -121,6 +126,10 @@ class Enemy :public entity {
 public:
 	void init(float x, float y);
 	void move();
+
+	float w_Life = 100;
+	float f_Life = 100;
+	float b_Life = 100;
 };
 
 void Enemy::init(float x, float y)
@@ -131,6 +140,46 @@ void Enemy::init(float x, float y)
 
 
 void Enemy::move()
+{
+	//y_pos += 2;
+	x_pos -= 4;
+}
+
+class Enemy_blue :public entity {
+
+public:
+	void init(float x, float y);
+	void move();
+};
+
+void Enemy_blue::init(float x, float y)
+{
+	x_pos = x;
+	y_pos = y;
+}
+
+
+void Enemy_blue::move()
+{
+	//y_pos += 2;
+	x_pos -= 4;
+}
+
+class Enemy_yellow :public entity {
+
+public:
+	void init(float x, float y);
+	void move();
+};
+
+void Enemy_yellow::init(float x, float y)
+{
+	x_pos = x;
+	y_pos = y;
+}
+
+
+void Enemy_yellow::move()
 {
 	//y_pos += 2;
 	x_pos -= 4;
@@ -149,22 +198,7 @@ public:
 	void active();
 	bool check_collision(float x, float y);
 
-
 };
-
-bool Bullet::check_collision(float x, float y)
-{
-	//충돌 처리 시 
-	if (sphere_collision_check(x_pos, y_pos, 32, x, y, 32) == true)
-	{
-		bShow = false;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
 
 void Bullet::init(float x, float y)
 {
@@ -207,7 +241,34 @@ void Bullet::hide()
 
 //객체 생성 
 Enemy enemy[ENEMY_NUM];
+Enemy_blue enemy_blue[ENEMY_COLOR_NUM];
+Enemy_yellow enemy_yellow[ENEMY_COLOR_NUM];
 Bullet bullet[BULLET_NUM];
+
+bool sphere_collision_check(float x0, float y0, float size0, float x1, float y1, float size1)
+{
+
+	if ((x0 - x1)*(x0 - x1) + (y0 - y1)*(y0 - y1) < (size0 + size1) * (size0 + size1))
+	{
+		Score = Score + 1;
+		return true;
+	}
+	else
+		return false;
+}
+
+bool Bullet::check_collision(float x, float y)
+{
+	//충돌 처리 시 
+	if (sphere_collision_check(x_pos, y_pos, 32, x, y, 32) == true)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
 
 // the entry point for any Windows program
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -230,7 +291,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	RegisterClassEx(&wc);
 
 	hWnd = CreateWindowEx(NULL, L"WindowClass", L"Our Direct3D Program",
-		WS_EX_TOPMOST | WS_POPUP, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
+		WS_EX_TOPMOST | WS_POPUP, 100, 100, SCREEN_WIDTH, SCREEN_HEIGHT,
 		NULL, NULL, hInstance, NULL);
 
 	ShowWindow(hWnd, nCmdShow);
@@ -362,6 +423,36 @@ void initD3D(HWND hWnd)
 		&sprite_enemy);    // load to sprite
 
 	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
+		L"enemy_blue.png",    // the file name
+		D3DX_DEFAULT,    // default width
+		D3DX_DEFAULT,    // default height
+		D3DX_DEFAULT,    // no mip mapping
+		NULL,    // regular usage
+		D3DFMT_A8R8G8B8,    // 32-bit pixels with alpha
+		D3DPOOL_MANAGED,    // typical memory handling
+		D3DX_DEFAULT,    // no filtering
+		D3DX_DEFAULT,    // no mip filtering
+		D3DCOLOR_XRGB(255, 0, 255),    // the hot-pink color key
+		NULL,    // no image info struct
+		NULL,    // not using 256 colors
+		&sprite_enemy_blue);    // load to sprite
+
+	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
+		L"enemy_yellow.png",    // the file name
+		D3DX_DEFAULT,    // default width
+		D3DX_DEFAULT,    // default height
+		D3DX_DEFAULT,    // no mip mapping
+		NULL,    // regular usage
+		D3DFMT_A8R8G8B8,    // 32-bit pixels with alpha
+		D3DPOOL_MANAGED,    // typical memory handling
+		D3DX_DEFAULT,    // no filtering
+		D3DX_DEFAULT,    // no mip filtering
+		D3DCOLOR_XRGB(255, 0, 255),    // the hot-pink color key
+		NULL,    // no image info struct
+		NULL,    // not using 256 colors
+		&sprite_enemy_yellow);    // load to sprite
+
+	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
 		L"bullet.png",    // the file name
 		D3DX_DEFAULT,    // default width
 		D3DX_DEFAULT,    // default height
@@ -421,9 +512,38 @@ void initD3D(HWND hWnd)
 		NULL,    // not using 256 colors
 		&sprite_background);    // load to sprite
 
+	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
+		L"OScore.png",    // the file name
+		720,    // default width
+		77,    // default height
+		D3DX_DEFAULT,    // no mip mapping
+		NULL,    // regular usage
+		D3DFMT_A8R8G8B8,    // 32-bit pixels with alpha
+		D3DPOOL_MANAGED,    // typical memory handling
+		D3DX_DEFAULT,    // no filtering
+		D3DX_DEFAULT,    // no mip filtering
+		D3DCOLOR_XRGB(255, 0, 255),    // the hot-pink color key
+		NULL,    // no image info struct
+		NULL,    // not using 256 colors
+		&sprite_OScore);    // load to sprite
+
+	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
+		L"TScore.png",    // the file name
+		720,    // default width
+		77,    // default height
+		D3DX_DEFAULT,    // no mip mapping
+		NULL,    // regular usage
+		D3DFMT_A8R8G8B8,    // 32-bit pixels with alpha
+		D3DPOOL_MANAGED,    // typical memory handling
+		D3DX_DEFAULT,    // no filtering
+		D3DX_DEFAULT,    // no mip filtering
+		D3DCOLOR_XRGB(255, 0, 255),    // the hot-pink color key
+		NULL,    // no image info struct
+		NULL,    // not using 256 colors
+		&sprite_TScore);    // load to sprite
+
 	return;
 }
-
 
 void init_game(void)
 {
@@ -436,8 +556,12 @@ void init_game(void)
 		//enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
 		enemy[i].init((float)(rand() % 640+500), (float)(rand() % 300 + 50));
 	}
-}
 
+	for (int i = 0; i<ENEMY_COLOR_NUM; i++)
+	{
+		enemy_blue[i].init((float)(rand() % 640 + 550), (float)(rand() % 300 + 50));
+	}
+}
 
 void do_game_logic(void)
 {
@@ -455,17 +579,15 @@ void do_game_logic(void)
 	if (KEY_DOWN(0x44))
 		hero.move(MOVE_RIGHT);
 
-	if (KEY_DOWN(0x45))
-		hero.state_bullet = 2;
-
 	if (KEY_DOWN(0x46))
 		hero.state_bullet = 0;
 
-	if(KEY_DOWN(0x51))
+	if (KEY_DOWN(0x51))
 		hero.state_bullet = 1;
 
-
-
+	if (KEY_DOWN(0x45))
+		hero.state_bullet = 2;
+	
 	//적들 처리 
 	for (int i = 0; i<ENEMY_NUM; i++)
 	{
@@ -473,7 +595,22 @@ void do_game_logic(void)
 		enemy[i].init((float)(rand() % 640+550), (float)(rand() % 300 + 50));
 		else
 		enemy[i].move();
+	}
 
+	for (int i = 0; i<ENEMY_COLOR_NUM; i++)
+	{
+		if (enemy_blue[i].x_pos < 0)
+			enemy_blue[i].init((float)(rand() % 640 + 550), (float)(rand() % 300 + 50));
+		else
+			enemy_blue[i].move();
+	}
+
+	for (int i = 0; i<ENEMY_COLOR_NUM; i++)
+	{
+		if (enemy_yellow[i].x_pos < 0)
+			enemy_yellow[i].init((float)(rand() % 640 + 550), (float)(rand() % 300 + 50));
+		else
+			enemy_yellow[i].move();
 	}
 
 	if (Timer3On)
@@ -518,6 +655,30 @@ void do_game_logic(void)
 					}
 				}
 			}
+
+			for (int i = 0; i < ENEMY_COLOR_NUM; i++)
+			{
+				for (int j = 0; j < BULLET_NUM; j++)
+				{
+					if (bullet[j].check_collision(enemy_blue[i].x_pos, enemy_blue[i].y_pos)== true)
+					{
+						enemy_blue[i].init((float)(rand() % 640 + 600), (float)(rand() % 300 + 50));
+						//bullet[j].hide();
+					}
+				}
+			}
+
+			for (int i = 0; i < ENEMY_COLOR_NUM; i++)
+			{
+				for (int j = 0; j < BULLET_NUM; j++)
+				{
+					if (bullet[j].check_collision(enemy_yellow[i].x_pos, enemy_yellow[i].y_pos) == true)
+					{
+						enemy_yellow[i].init((float)(rand() % 640 + 600), (float)(rand() % 300 + 50));
+						//bullet[j].hide();
+					}
+				}
+			}
 		}
 	}	
 }
@@ -555,13 +716,13 @@ void render_frame(void)
 	ZeroMemory(&matWorldTemp, sizeof(D3DXMATRIX));
 	D3DXMatrixIdentity(&matWorldTemp);
 
-	RECT part5;
-	SetRect(&part5, 0, 0, 640, 480);
-	D3DXVECTOR3 center3(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-	D3DXVECTOR3 position3(0.0f, 0.0f, 0.0f);    // position at 50, 50 with no depth
+	RECT part0;
+	SetRect(&part0, 0, 0, 640, 480);
+	D3DXVECTOR3 center0(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+	D3DXVECTOR3 position0(0.0f, 0.0f, 0.0f);    // position at 50, 50 with no depth
 
 	d3dspt->SetTransform(&matWorldTemp);
-	d3dspt->Draw(sprite_background, &part5, &center3, &position3, D3DCOLOR_ARGB(255, 255, 255, 255));
+	d3dspt->Draw(sprite_background, &part0, &center0, &position0, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 	////주인공 
 	RECT part;
@@ -588,42 +749,78 @@ void render_frame(void)
 		case 1:
 			if (bullet[i].bShow == true)
 			{
-				RECT part3; // 
-				SetRect(&part3, 0, 0, 64, 64);
-				D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-				D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
-				d3dspt->Draw(sprite_bullet_blue, &part3, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+				RECT part2; // 
+				SetRect(&part2, 0, 0, 64, 64);
+				D3DXVECTOR3 center2(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+				D3DXVECTOR3 position2(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+				d3dspt->Draw(sprite_bullet_blue, &part2, &center2, &position2, D3DCOLOR_ARGB(255, 255, 255, 255));
 			}
 			break;
 		case 2:
 			if (bullet[i].bShow == true)
 			{
-				RECT part4; // 
-				SetRect(&part4, 0, 0, 64, 64);
-				D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-				D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
-				d3dspt->Draw(sprite_bullet_yellow, &part4, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+				RECT part3; // 
+				SetRect(&part3, 0, 0, 64, 64);
+				D3DXVECTOR3 center3(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+				D3DXVECTOR3 position3(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+				d3dspt->Draw(sprite_bullet_yellow, &part3, &center3, &position3, D3DCOLOR_ARGB(255, 255, 255, 255));
 			}
 			break;
 		}		
 	}
 
 	////에네미 
-	RECT part2;
-	SetRect(&part2, 0, 0, 64, 64);
-	D3DXVECTOR3 center2(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-
+	RECT part4;
+	SetRect(&part4, 0, 0, 64, 64);
+	D3DXVECTOR3 center4(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
 	for (int i = 0; i<ENEMY_NUM; i++)
 	{
-		D3DXVECTOR3 position2(enemy[i].x_pos, enemy[i].y_pos, 0.0f);    // position at 50, 50 with no depth
-		d3dspt->Draw(sprite_enemy, &part2, &center2, &position2, D3DCOLOR_ARGB(255, 255, 255, 255));
+		D3DXVECTOR3 position4(enemy[i].x_pos, enemy[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+		d3dspt->Draw(sprite_enemy, &part4, &center4, &position4, D3DCOLOR_ARGB(255, 255, 255, 255));
 	}
+
+	RECT part5;
+	SetRect(&part5, 0, 0, 64, 64);
+	D3DXVECTOR3 center5(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+	for (int i = 0; i<ENEMY_COLOR_NUM; i++)
+	{
+		D3DXVECTOR3 position5(enemy_blue[i].x_pos, enemy_blue[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+		d3dspt->Draw(sprite_enemy_blue, &part5, &center5, &position5, D3DCOLOR_ARGB(255, 255, 255, 255));
+	}
+
+	RECT part6;
+	SetRect(&part6, 0, 0, 64, 64);
+	D3DXVECTOR3 center6(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+	for (int i = 0; i<ENEMY_COLOR_NUM; i++)
+	{
+		D3DXVECTOR3 position6(enemy_yellow[i].x_pos, enemy_yellow[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+		d3dspt->Draw(sprite_enemy_yellow, &part6, &center6, &position6, D3DCOLOR_ARGB(255, 255, 255, 255));
+	}
+
+	T_Score = Score / 10;
+	O_Score = Score % 10;
+
+	RECT part7;
+	t_xPos = t_xPos * T_Score;
+	SetRect(&part7, (T_Score)*72, 0, ((T_Score+1) * 72), 77);
+	D3DXVECTOR3 center7(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+	D3DXVECTOR3 position7(570.0f-68, 0.0f, 0.0f);    // position at 50, 50 with no depth
+	d3dspt->Draw(sprite_TScore, &part7, &center7, &position7, D3DCOLOR_ARGB(255, 255, 255, 255));
+
+	RECT part8;
+	o_xPos = o_xPos * O_Score;
+	if(O_Score == 0)
+		SetRect(&part8, (O_Score) * 72, 0, ((O_Score + 1) * 72), 77);
+	else
+		SetRect(&part8, ((O_Score-1) * 72), 0, (O_Score * 72), 77);
+	D3DXVECTOR3 center8(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+	D3DXVECTOR3 position8(570.0f, 0.0f, 0.0f);    // position at 50, 50 with no depth
+	d3dspt->Draw(sprite_OScore, &part8, &center8, &position8, D3DCOLOR_ARGB(255, 255, 255, 255));
+	
 
 	////
 	d3dspt->End();    // end sprite drawing
-
 	d3ddev->EndScene();    // ends the 3D scene
-
 	d3ddev->Present(NULL, NULL, NULL, NULL);
 
 	return;
@@ -640,6 +837,8 @@ void cleanD3D(void)
 	//객체 해제 
 	sprite_hero->Release();
 	sprite_enemy->Release();
+	sprite_enemy_blue->Release();
+	sprite_enemy_yellow->Release();
 	sprite_bullet->Release();
 	sprite_bullet_blue->Release();
 	sprite_bullet_yellow->Release();
