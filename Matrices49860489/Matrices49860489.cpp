@@ -4,10 +4,6 @@
 #include <d3d9.h>
 #include <d3dx9.h>
 #include <iostream>
-#include <random>
-#include <ctime>
-#include <functional>
-
 
 // define the screen resolution and keyboard macros
 #define SCREEN_WIDTH  640
@@ -15,7 +11,11 @@
 #define KEY_DOWN(vk_code) ((GetAsyncKeyState(vk_code) & 0x8000) ? 1 : 0)
 #define KEY_UP(vk_code) ((GetAsyncKeyState(vk_code) & 0x8000) ? 0 : 1)
 
-#define ENEMY_NUM 2
+#define ENEMY_NUM 10
+#define BULLET_NUM 10
+
+bool Timer3On = false;
+int timer = 0;
 
 
 // include the Direct3D Library file
@@ -106,21 +106,21 @@ void Hero::move(int i)
 	switch (i)
 	{
 	case MOVE_UP:
-		y_pos -= 3;
+		y_pos -= 6;
 		break;
 
 	case MOVE_DOWN:
-		y_pos += 3;
+		y_pos += 6;
 		break;
 
 
 	case MOVE_LEFT:
-		x_pos -= 3;
+		x_pos -= 6;
 		break;
 
 
 	case MOVE_RIGHT:
-		x_pos += 3;
+		x_pos += 6;
 		break;
 
 	}
@@ -246,7 +246,6 @@ public:
 	void active();
 	bool check_collision(float x, float y);
 
-
 };
 
 
@@ -266,14 +265,10 @@ bool Heart::check_collision(float x, float y)
 	}
 }
 
-
-
-
 void Heart::init(float x, float y)
 {
 	x_pos = x;
 	y_pos = y;
-
 }
 
 
@@ -281,14 +276,12 @@ void Heart::init(float x, float y)
 bool Heart::show()
 {
 	return bShow;
-
 }
 
 
 void Heart::active()
 {
 	bShow = true;
-
 }
 
 
@@ -301,21 +294,13 @@ void Heart::move()
 void Heart::hide()
 {
 	bShow = false;
-
 }
-
-
-
-
-
 
 //객체 생성 
 Hero hero;
 Enemy enemy[ENEMY_NUM];
-Bullet bullet;
+Bullet bullet[BULLET_NUM];
 Heart heart;
-
-
 
 // the entry point for any Windows program
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -346,12 +331,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	// set up and initialize Direct3D
 	initD3D(hWnd);
 
-
 	//게임 오브젝트 초기화 
 	init_game();
 
 	// enter the main loop:
-
 	MSG msg;
 
 	while (TRUE)
@@ -375,9 +358,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		if (KEY_DOWN(VK_ESCAPE))
 			PostMessage(hWnd, WM_DESTROY, 0, 0);
 
-
-
-
 		while ((GetTickCount() - starting_point) < 25);
 	}
 
@@ -386,7 +366,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	return msg.wParam;
 }
-
 
 // this is the main message handler for the program
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -522,18 +501,14 @@ void init_game(void)
 	//적들 초기화 
 	for (int i = 0; i<ENEMY_NUM; i++)
 	{
-		mt19937 engine((unsigned int)time(NULL));				// MT19937 난수 엔진
-		uniform_int_distribution<int> distribution(120, 360);     // 생성 범위
-		auto generator = bind(distribution, engine);
-
 		//enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
-		enemy[i].init((float)(rand() % 640), generator());
+		enemy[i].init((float)(rand() % 640), (float)(rand() % 300 + 50));
 	}
 
 	//총알 초기화 
-	bullet.init(hero.x_pos, hero.y_pos);
+	/*bullet.init(hero.x_pos, hero.y_pos);
 
-	heart.init(hero.x_pos, hero.y_pos);
+	heart.init(hero.x_pos, hero.y_pos);*/
 
 }
 
@@ -561,53 +536,55 @@ void do_game_logic(void)
 		//if (enemy[i].y_pos > 500)
 		if (enemy[i].x_pos < 640)
 		{
-			mt19937 engine((unsigned int)time(NULL));				// MT19937 난수 엔진
-			uniform_int_distribution<int> distribution(120, 360);     // 생성 범위
-			auto generator = bind(distribution, engine);
-
-			//enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
-			enemy[i].init((float)(rand() % 640), generator());
+			enemy[i].init((float)(rand() % 640), (float)(rand() % 300 + 50));
 		}
 		else
 			enemy[i].move();
 	}
 
+	if (Timer3On)
+		timer++;
 
-	//총알 처리 
-	if (bullet.show() == false)
+	if (timer >= 3)
 	{
-		if (KEY_DOWN(0x01))
-		{
-			bullet.active();
-			bullet.init(hero.x_pos, hero.y_pos);
-		}
-
-
+		Timer3On = false;
+		timer = 0;
 	}
 
-
-	if (bullet.show() == true)
+	//총알 처리 
+	for (int i = 0; i < BULLET_NUM; i++)
 	{
-		if (bullet.x_pos > 640)
-			bullet.hide();
-		else
-			bullet.move();
-
-
-
-
-		//충돌 처리 
-		for (int i = 0; i<ENEMY_NUM; i++)
+		if (bullet[i].show() == false && Timer3On == false)
 		{
-			if (bullet.check_collision(enemy[i].x_pos, enemy[i].y_pos) == true)
+			if (KEY_DOWN(0x01))
 			{
-				//enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
-				enemy[i].init((float)(rand() % 640), rand() % 300);
+				bullet[i].active();
+				bullet[i].init(hero.x_pos + 60, hero.y_pos);
+				Timer3On = true;
+
+				return;
 			}
 		}
+		if (bullet[i].show() == true)
+		{
+			if (bullet[i].x_pos > 640)
+				bullet[i].hide();
+			else
+				bullet[i].move();
 
-
-
+			//충돌 처리 
+			for (int i = 0; i < ENEMY_NUM; i++)
+			{
+				for (int j = 0; j < BULLET_NUM; j++)
+				{
+					if (bullet[j].check_collision(enemy[i].x_pos, enemy[i].y_pos) == true)
+					{
+						enemy[i].init((float)(rand() % 640), (float)(rand() % 300 + 50));
+						bullet[j].hide();
+					}
+				}
+			}
+		}
 	}
 
 	//시어 하트 처리 
@@ -616,12 +593,9 @@ void do_game_logic(void)
 		if (KEY_DOWN(0x02))
 		{
 			heart.active();
-			heart.init(hero.x_pos, hero.y_pos);
+			heart.init(hero.x_pos+60, hero.y_pos);
 		}
-
-
 	}
-
 
 	if (heart.show() == true)
 	{
@@ -630,25 +604,17 @@ void do_game_logic(void)
 		else
 			heart.move();
 
-
-
-
 		//충돌 처리 
 		for (int i = 0; i<ENEMY_NUM; i++)
 		{
 			if (heart.check_collision(enemy[i].x_pos, enemy[i].y_pos) == true)
 			{
+
 				//enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
-				enemy[i].init((float)(rand() % 640), rand() % 300);
+				enemy[i].init((float)(rand() % 640), rand() % 300 + 100);
 			}
 		}
-
-
-
 	}
-
-
-
 }
 
 // this is the function used to render a single frame
@@ -687,13 +653,16 @@ void render_frame(void)
 	d3dspt->Draw(sprite_hero, &part, &center, &position, D3DCOLOR_ARGB(255, 255, 255, 255));
 
 	////총알 
-	if (bullet.bShow == true)
+	for (int i = 0; i < BULLET_NUM; i++)
 	{
-		RECT part1;
-		SetRect(&part1, 0, 0, 64, 64);
-		D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-		D3DXVECTOR3 position1(bullet.x_pos, bullet.y_pos, 0.0f);    // position at 50, 50 with no depth
-		d3dspt->Draw(sprite_bullet, &part1, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+		if (bullet[i].bShow == true)
+		{
+			RECT part1;
+			SetRect(&part1, 0, 0, 64, 64);
+			D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+			D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+			d3dspt->Draw(sprite_bullet, &part1, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+		}
 	}
 
 	////시어 하트
